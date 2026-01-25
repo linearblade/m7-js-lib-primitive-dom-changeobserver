@@ -5,7 +5,7 @@
 //
 // This file is OPTIONAL for standalone usage. It exists only for m7-lib wiring.
 
-import DomChangeObserver from "./DomChangeObserver.reobserve.js";
+import DomChangeObserver from "./DomChangeObserver.js";
 
 const MOD = "[primitive.dom.changeobserver]";
 

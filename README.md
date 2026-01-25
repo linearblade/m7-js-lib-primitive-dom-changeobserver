@@ -1,4 +1,4 @@
-# m7-js-lib-primitive-dom-changeobserver 
+# m7-js-lib-primitive-dom-changeobserver
 
 A selector-aware DOM change reporting primitive built on top of `MutationObserver`.
 

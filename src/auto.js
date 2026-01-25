@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2025 m7.org
+ * License: MTL-10 (see LICENSE.md)
+ */
 // dom/changeobserver/auto.js
 //
 // Registers this primitive into the m7-lib hierarchy when running in a browser

@@ -1,0 +1,66 @@
+// log/auto.js
+//
+// Registers this primitive into the m7-lib hierarchy when running in a browser
+// with `window.lib` available.
+//
+// This file is OPTIONAL for standalone usage. It exists only for m7-lib wiring.
+
+import Manager from "./Manager.js";
+import Worker from "./Worker.js";
+import utils from "./utils.js";
+import * as constants from "./constants.js";
+
+const MOD = "[primitive.log]";
+
+// Resolve lib from global root (boot/env preferred)
+const root =
+    (typeof globalThis !== "undefined") ? globalThis :
+    (typeof window !== "undefined") ? window :
+    (typeof global !== "undefined") ? global :
+    undefined;
+
+const lib = root?.lib || null;
+
+if (!lib) {
+    throw new Error(`${MOD} requires global lib (browser environment).`);
+}
+
+if (typeof lib?.hash?.set !== "function") {
+    throw new Error(`${MOD} requires lib.hash.set (m7-lib not installed or incomplete).`);
+}
+
+if (!lib.service || typeof lib.service.set !== "function") {
+    throw new Error(`${MOD} requires lib.service (service registry not installed).`);
+}
+
+// Exportable module object (structure / namespace)
+const log = {
+    Manager,
+    Worker,
+    utils,
+    constants
+};
+
+// Register module into lib hierarchy (structure)
+lib.hash.set(lib, "primitive.log", log);
+
+// ─────────────────────────────────────────
+// Service registration
+// ─────────────────────────────────────────
+
+// Create a default log manager instance
+const logManager = new Manager({ lib });
+
+// Register as a running service
+lib.service.set("primitive.log", logManager);
+
+// Optional convenience alias (short path)
+// lib.service.set("log", logManager);
+
+// Optional path alias (if you want symmetry with other primitives)
+// lib.hash.set(lib, "log", log);
+
+// Exports
+export { log, logManager, Manager, Worker, utils, constants };
+export default log;
+ 

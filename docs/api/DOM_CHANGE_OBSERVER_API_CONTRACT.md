@@ -20,7 +20,7 @@ This contract defines the **public, stable interface** for `DomChangeObserver`, 
 * handler guarantees
 * data shapes
 * error and environment guarantees
-* optional `auto.js` integration behavior
+* optional m7-lib integration behavior (`install.js` / `auto.js`)
 
 This contract does **not** define:
 
@@ -100,15 +100,18 @@ DomChangeObserver guarantees:
 The module exports the `DomChangeObserver` constructor.  
 Exact export wiring depends on the entry module.
 
-### `auto.js` integration (optional)
+### m7 integration (optional)
 
-When used with **m7-lib**, `auto.js`:
+When used with **m7-lib**, `install.js`:
 
 * registers a namespace object via: `lib.hash.set(lib, "primitive.dom.changeobserver", {...})`
-* registers a default singleton instance as a service under the key:  
-  `"primitive.dom.changeobserver"`
+* may register a default singleton service instance under:  
+  `"primitive.dom.changeobserver"` (when a service registry is available)
 
-`auto.js` **must not** alter runtime semantics defined by this contract.
+`auto.js` is an optional compatibility shim that may delegate to `install.js` using a global `lib`.
+If a global `lib` is unavailable, `auto.js` may no-op.
+
+Integration wiring (`install.js` or `auto.js`) **must not** alter runtime semantics defined by this contract.
 
 ---
 
@@ -120,7 +123,10 @@ When used with **m7-lib**, `auto.js`:
 
 Construction does **not** start observation.
 
-DOM access does not occur until `start()`.
+Observation begins only after `start()`.
+
+Note: when no explicit root is provided, construction may resolve a default
+root from the provided host/global document.
 
 ---
 
@@ -168,11 +174,11 @@ Returns whether observation is active.
 
 * Replaces the active root
 * Re-observes if currently running
-* Resets selector membership baseline
+* Resets selector membership baseline when re-observing (running path)
 
 Returns `false` if the root is unchanged.
 
-Throws if `newRoot` is invalid.
+Throws if `newRoot` is invalid, and may throw on running re-attach/invariant failures.
 
 ---
 
@@ -422,7 +428,7 @@ type SelectorInfo = {
 
 ## Errors & throw behavior
 
-Methods may throw only in these cases:
+Methods may throw in these cases:
 
 * `start()`:
   * invalid or missing root
@@ -431,9 +437,19 @@ Methods may throw only in these cases:
 
 * `setRoot()`:
   * invalid root type
+  * re-attach/invariant failures while running
 
 * `configure()`:
   * attempt to set `root`
+  * may also throw transitively if `selectors` is provided while running and
+    re-observation fails
+
+* selector-registry mutation methods while running:
+  * `setSelectors()`
+  * `addSelector()`
+  * `removeSelector()`
+  * `pauseSelector()` / `resumeSelector()` / `setSelectorEnabled()`
+  * may throw when effective observe options change and re-observation fails
 
 * `stop()` / `pause()`:
   * disconnect failure (rare; best-effort wrapper)

@@ -1,148 +1,113 @@
-# `auto.js` Integration Reference
+# Integration Reference (`install.js` + `auto.js`)
 
-`auto.js` is an **optional** convenience layer that registers DomChangeObserver into the **m7-lib** global (`globalThis.lib`).
+DomChangeObserver exposes two m7 integration entry points:
 
-If you are not using m7-lib (bundlers, tests, standalone modules), you do **not** need `auto.js`.
+* `install.js` (recommended): explicit installer API for m7-lib instances
+* `auto.js` (compatibility shim): global-lib bridge for legacy/browser-global setups
 
----
-
-## What `auto.js` does
-
-When loaded in a browser environment with `globalThis.lib` available, `auto.js`:
-
-1. Ensures the `lib.primitive.dom.changeobserver` namespace exists (via `lib.hash.set`)
-
-2. Exposes the public constructor:
-
-   * `lib.primitive.dom.changeobserver.DomChangeObserver`
-
-3. Creates a **default observer instance** and registers it as a service:
-
-   * `lib.service.set("primitive.dom.changeobserver", instance)`
-
-4. Optionally exposes the instance on the namespace:
-
-   * `lib.primitive.dom.changeobserver.instance`
-
-`auto.js` is registration and wiring only.
-
-It does **not** start observation automatically.
+If you are using the primitive standalone, you do not need either file; import `DomChangeObserver` directly.
 
 ---
 
-## Requirements
+## Recommended: `install.js`
 
-`auto.js` expects:
+`install(lib, opts?)` is the canonical integration API.
 
-* `m7-lib` loaded first (provides `globalThis.lib`)
-* `lib.hash.set` available
-* `lib.service.set` available
+```js
+import lib, { init } from "/vendor/m7-js-lib/src/index.js";
+import installDomChangeObserver from "/vendor/m7-js-lib-primitive-dom-changeobserver/src/install.js";
 
-If any of these are missing, `auto.js` throws immediately.
+init();
+
+const result = installDomChangeObserver(lib, {
+  host: window,
+  root: document.body,
+  start: false,
+});
+
+const obs = result.instance || lib.service.get("primitive.dom.changeobserver");
+```
+
+### What it registers
+
+* Namespace: `lib.primitive.dom.changeobserver`
+* Constructor: `lib.primitive.dom.changeobserver.DomChangeObserver`
+* Service (when available): `lib.service.set("primitive.dom.changeobserver", instance)`
+* Namespace instance (when available): `lib.primitive.dom.changeobserver.instance`
+
+### Installer options
+
+* `host`
+* `root`
+* `instance`
+* `force`
+* `configureDefaults` (default `true`)
+* `start` (default `false`)
 
 ---
 
-## Recommended load order
+## `auto.js` shim behavior
+
+`auto.js` now delegates to `install.js`.
+
+Behavior:
+
+* If `globalThis.lib` is present, it calls `install(lib, { host })`.
+* If global `lib` is missing, it warns and no-ops.
+
+This is intentional for compatibility with v1 module usage where `lib` is local/imported, not global.
 
 ```html
-<!-- Load m7-lib (creates global `lib`) -->
+<!-- Legacy/global path only -->
 <script src="/lib/m7-lib.min.js"></script>
-
-<!-- Then load changeobserver auto.js as a module -->
 <script type="module" src="/lib/dom/changeobserver/auto.js"></script>
 ```
 
----
-
-## What gets registered
-
-After `auto.js` executes, you can access:
-
-### Constructor
-
-```js
-const DomChangeObserver = lib.primitive.dom.changeobserver.DomChangeObserver;
-```
-
-### Default instance (service)
-
-```js
-const obs = lib.service.get("primitive.dom.changeobserver");
-```
-
-### Default instance (namespace)
-
-```js
-const obs = lib.primitive.dom.changeobserver.instance;
-```
+In v1 module environments, prefer explicit installer usage and skip `auto.js`.
 
 ---
 
-## Default root resolution
+## Start behavior
 
-`auto.js` attempts to select a reasonable default root from `lib._env` (if present):
+Neither `install.js` nor `auto.js` starts observation by default.
 
-* `lib._env.root.document.body`, then
-* `lib._env.root.document`, then
-* `null`
+You can either:
 
-If the resolved root is `null`, you must explicitly call `setRoot(...)` before `start()`.
-
----
-
-## Default configuration
-
-The default instance is configured conservatively:
-
-* `debounceMs: 0`
-* `includeSubtreeMatches: false`
-* `observeAttributes: false`
-* `attributeFilter: null`
-* `onChange: null` (no global emission until a consumer attaches one)
-
-This is intentional: the primitive installs cleanly without producing events by itself.
-
----
-
-## Basic usage
+* call `obs.start()` yourself, or
+* pass `start: true` to `install()`
 
 ```js
-const obs = lib.service.get("primitive.dom.changeobserver");
-
-obs.configure({
-  selectors: [".active"],
-  onChange(batch) {
-    console.log(batch);
-  },
+installDomChangeObserver(lib, {
+  host: window,
+  root: document.body,
+  start: true,
 });
-
-obs.start();
 ```
 
 ---
 
 ## Troubleshooting
 
-| Symptom                          | Likely cause                           | Fix                                          |
-| -------------------------------- | -------------------------------------- | -------------------------------------------- |
-| `lib is undefined`               | m7-lib not loaded (or loaded too late) | Load m7-lib first                            |
-| `requires lib.hash.set`          | incomplete m7-lib build                | include hash/registry modules                |
-| `requires lib.service`           | service registry missing               | include service registry / `lib.service.set` |
-| `start(): no DOM root available` | default root resolved to `null`        | pass `opts.root` or call `setRoot(...)`      |
+| Symptom                                                  | Likely cause                                           | Fix                                                |
+| -------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------- |
+| `install(lib) requires an m7-lib instance object`       | invalid `lib` argument                                 | pass actual m7-lib instance                        |
+| `install(lib) requires lib.hash.set`                    | incomplete m7-lib build                                | include hash registry support                      |
+| `auto.js: global lib not found; skipping auto-install.` | running shim in non-global/v1 module setup             | call `installDomChangeObserver(lib, ...)` directly |
+| `start(): no DOM root available`                        | no valid root available                                | pass `root` or call `setRoot(...)`                |
 
 ---
 
 ## Notes
 
-* `auto.js` should remain dependency-light.
-* In module/bundler environments, you typically do **not** need `auto.js`.
-* `auto.js` does not introduce any async behavior.
+* `auto.js` is compatibility wiring, not the primary integration API.
+* `install.js` is explicitly for m7-lib wiring and is not required for standalone usage.
+* Integration wiring does not change DomChangeObserver runtime semantics.
 
 ---
 
-## Related Docs
+## Related docs
 
 * **Installation** → [../usage/INSTALLATION.md](../usage/INSTALLATION.md)
 * **Quick Start** → [../usage/QUICKSTART.md](../usage/QUICKSTART.md)
-* **Handlers** → [EVENT_HANDLERS.md](./EVENT_HANDLERS.md)
+* **Event Handlers** → [EVENT_HANDLERS.md](./EVENT_HANDLERS.md)
 * **API Index** → [INDEX.md](./INDEX.md)

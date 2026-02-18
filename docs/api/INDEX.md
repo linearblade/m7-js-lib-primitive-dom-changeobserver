@@ -35,9 +35,9 @@ Both are synchronous, best-effort, and never awaited.
 
 ## Integration
 
-* **auto.js** → [AUTO.md](./AUTO.md)
+* **Integration (`install.js` + `auto.js`)** → [AUTO.md](./AUTO.md)
 
-Optional browser convenience that registers the primitive into `lib.primitive.dom.changeobserver` and installs a shared instance as a service (m7-lib).
+Recommended explicit installer plus optional global compatibility shim for m7-lib integration.
 
 ---
 

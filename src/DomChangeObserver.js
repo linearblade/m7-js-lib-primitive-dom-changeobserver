@@ -1280,15 +1280,15 @@ export default class DomChangeObserver {
 	    this._deliverIfPending();
 	}, ms > 0 ? ms : 0);
     }
-    _recordsForSelector(records, sel) {
-	if (!records || !records.length) return [];
-	const out = [];
-	for (const r of records) {
-	    // r.selectors is always an array in your build step
-	    if (r && Array.isArray(r.selectors) && r.selectors.includes(sel)) out.push(r);
-	}
-	return out;
-    }
+	_recordsForSelector(records, sel) {
+		if (!records || !records.length) return [];
+		const out = [];
+		for (const r of records) {
+		    // r.selectors is normalized to an array by _mapToRecords().
+		    if (r && Array.isArray(r.selectors) && r.selectors.includes(sel)) out.push(r);
+		}
+		return out;
+	    }
 
     
 
@@ -1305,13 +1305,13 @@ export default class DomChangeObserver {
 	    try { cb(batch); } catch {}
 	}
 
-	// 2) Per-selector onEvent (conditional)
-	// Originally structural-only (added/removed) to avoid noisy attribute churn.
-	// Now includes changed/changeAway for selectors that opt into observeAttributes,
-	// because these represent selector-relevant lifecycle transitions.
-	// changed: membership flip (non-match -> match) caused by non-structural mutations (attrs/charData)
-	// changeAway: membership flip (match -> non-match) caused by non-structural mutations (attrs/charData)
-	for (const entry of this._selectorTable.values()) {
+		// 2) Per-selector onEvent (conditional)
+		// Originally structural-only (added/removed) to avoid noisy attribute churn.
+		// Now includes changed/changeAway for selectors that opt into observeAttributes,
+		// because these represent selector-relevant lifecycle transitions.
+		// changed: membership flip (non-match -> match) caused by attribute mutations.
+		// changeAway: membership flip (match -> non-match) caused by attribute mutations.
+		for (const entry of this._selectorTable.values()) {
 	    if (!entry || !entry.enabled) continue;
 	    const fn = entry.onEvent;
 	    if (typeof fn !== "function") continue;

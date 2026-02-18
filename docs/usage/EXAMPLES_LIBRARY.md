@@ -19,10 +19,17 @@ const obs = new DomChangeObserver({
 });
 ```
 
-### m7-lib (`auto.js`)
+### m7-lib (`install.js`, recommended)
 
 ```js
-// `auto.js` registers a shared instance as a service
+import installDomChangeObserver from "../../src/install.js";
+
+installDomChangeObserver(lib, {
+  host: window,
+  root: document.body,
+  start: false,
+});
+
 const obs = lib.service.get("primitive.dom.changeobserver");
 
 // Optional: set root explicitly if your env doesn’t provide one

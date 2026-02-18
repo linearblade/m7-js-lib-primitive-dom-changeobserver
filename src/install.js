@@ -29,6 +29,7 @@ const SERVICE_ID = "primitive.dom.changeobserver";
  * @param {DomChangeObserver} [opts.instance]
  * @param {boolean} [opts.force=false]
  * @param {boolean} [opts.configureDefaults=true]
+ * @param {boolean} [opts.start=false]
  * @returns {{
  *   namespace: Object,
  *   instance: DomChangeObserver|null,
@@ -64,6 +65,7 @@ export function install(lib, opts = {}) {
 
     let instance = null;
     let installedService = false;
+    const shouldStart = !!(opts && opts.start === true);
 
     if (hasServiceSet) {
         const force = opts && opts.force === true;
@@ -109,6 +111,10 @@ export function install(lib, opts = {}) {
         namespace.instance = opts.instance;
         lib.hash.set(lib, SERVICE_ID, namespace);
         instance = opts.instance;
+    }
+
+    if (shouldStart && instance && typeof instance.start === "function") {
+        instance.start();
     }
 
     return {

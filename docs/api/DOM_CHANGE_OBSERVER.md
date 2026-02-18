@@ -293,5 +293,5 @@ All other methods are best-effort and do not throw under normal usage.
 
 * **API Index** → [INDEX.md](./INDEX.md)
 * **Handlers** → [EVENT_HANDLERS.md](./EVENT_HANDLERS.md)
-* **auto.js** → [AUTO.md](./AUTO.md)
+* **Integration (`install.js` + `auto.js`)** → [AUTO.md](./AUTO.md)
 * **Contract** → [DOM_CHANGE_OBSERVER_API_CONTRACT.md](./DOM_CHANGE_OBSERVER_API_CONTRACT.md)

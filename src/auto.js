@@ -2,78 +2,45 @@
  * Copyright (c) 2025 m7.org
  * License: MTL-10 (see LICENSE.md)
  */
-// dom/changeobserver/auto.js
+// auto.js
 //
-// Registers this primitive into the m7-lib hierarchy when running in a browser
-// with `globalThis.lib` available.
+// Backward-compatible shim for legacy m7 usage.
+// - v098 style: if global lib exists, auto-install into it.
+// - v1 style: no global lib required; this file safely no-ops.
 //
-// This file is OPTIONAL for standalone usage. It exists only for m7-lib wiring.
+// For explicit/module installs, prefer importing install() directly.
 
-import DomChangeObserver from "./DomChangeObserver.js";
+import install, { DomChangeObserver } from "./install.js";
 
 const MOD = "[primitive.dom.changeobserver]";
 
-// Resolve host/global root
-const host =
-    (typeof globalThis !== "undefined") ? globalThis :
-    (typeof window !== "undefined") ? window :
-    (typeof global !== "undefined") ? global :
-    undefined;
+const host = resolveHost();
+const lib = (host && host.lib) ? host.lib : null;
 
-const lib = host?.lib || null;
+let installResult = null;
 
-if (!lib) {
-    throw new Error(`${MOD} requires global lib (browser environment).`);
+if (lib) {
+    installResult = install(lib, { host });
+} else if (host && host.console && typeof host.console.warn === "function") {
+    host.console.warn(`${MOD} auto.js: global lib not found; skipping auto-install.`);
 }
 
-if (typeof lib?.hash?.set !== "function") {
-    throw new Error(`${MOD} requires lib.hash.set (m7-lib not installed or incomplete).`);
-}
+const changeobserver =
+    installResult && installResult.namespace
+        ? installResult.namespace
+        : { DomChangeObserver };
 
-if (!lib.service || typeof lib.service.set !== "function") {
-    throw new Error(`${MOD} requires lib.service (service registry not installed).`);
-}
+const changeObserver =
+    installResult && Object.prototype.hasOwnProperty.call(installResult, "instance")
+        ? installResult.instance
+        : null;
 
-// Exportable module object (structure / namespace)
-const changeobserver = {
-    DomChangeObserver,
-};
-
-// Register module into lib hierarchy (structure)
-lib.hash.set(lib, "primitive.dom.changeobserver", changeobserver);
-
-// ─────────────────────────────────────────
-// Service registration
-// ─────────────────────────────────────────
-
-// Resolve a reasonable default root from lib._env if present
-const defaultRoot =
-    lib?._env?.root?.document?.body ??
-    lib?._env?.root?.document ??
-    null;
-
-// Create a default observer instance
-const changeObserver = new DomChangeObserver({
-    host,
-    root: defaultRoot,
-});
-
-// Apply a boring, safe default global configuration.
-// Consumers are free to override any of this later via configure().
-changeObserver.configure({
-    debounceMs: 0,
-    includeSubtreeMatches: false,
-    observeAttributes: false,
-    attributeFilter: null,
-    onChange: null, // no-op by default; subsystems attach explicitly
-});
-
-// Register as a service
-lib.service.set("primitive.dom.changeobserver", changeObserver);
-
-// Optional export of instance on the namespace
-changeobserver.instance = changeObserver;
-
-// Exports
-export { changeobserver, changeObserver, DomChangeObserver };
+export { changeobserver, changeObserver, DomChangeObserver, install };
 export default changeobserver;
+
+function resolveHost() {
+    if (typeof globalThis !== "undefined") return globalThis;
+    if (typeof window !== "undefined") return window;
+    if (typeof global !== "undefined") return global;
+    return undefined;
+}
